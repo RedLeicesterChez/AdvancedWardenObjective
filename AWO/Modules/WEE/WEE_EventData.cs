@@ -609,7 +609,9 @@ public sealed class WEE_SetTerminalLog
     public LG_LayerType TargetLayer { get; set; } = LG_LayerType.MainLayer;
     public eLocalZoneIndex TargetLocalIndex { get; set; } = eLocalZoneIndex.Zone_0;
     public int TargetTerminalIndex { get; set; } = 0;
-    public string FileName { get; set; } = string.Empty;    
+    public int FileNameReferenceValueID { get; set; } = 0; //Leave at 0 to do nothing
+    public string FileName { get; set; } = string.Empty;
+    public int FileContentReferenceValueID { get; set; } = 0; //Leave at 0 to do nothing
     public LocaleText FileContent { get; set; } = LocaleText.Empty;
     public Language FileContentOriginalLanguage { get; set; } = Language.English;    
     public uint AttachedAudioFile { get; set; } = 0u;
@@ -712,11 +714,16 @@ public sealed class WEE_FadeScreenInOut
     public float CurveValueEnd { get; set; } = 1f;
     public float FadeSpeed { get; set; } = 1f;
 }
+
 public sealed class WEE_SetTerminalPassword
 {
     public int TerminalIndex { get; set; } = 0;
     public PasswordEventType Type { get; set; } = PasswordEventType.Add;
+    public bool MakePasswordRandom { get; set; } = false;
     public string Password { get; set; } = string.Empty;
+    public int PasswordLength { get; set; } = 4;
+    public bool UseReferenceValueAsPassword { get; set; } = false;
+    public int ReferenceValueID { get; set; } = 0;
     public enum PasswordEventType : byte
     {
         Add,

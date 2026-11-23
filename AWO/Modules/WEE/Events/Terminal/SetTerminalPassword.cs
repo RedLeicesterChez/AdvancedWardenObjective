@@ -1,5 +1,12 @@
-﻿using LevelGeneration;
+﻿using AWO.Sessions;
+using Dissonance;
+using LevelGeneration;
 using SNetwork;
+using Random = UnityEngine.Random;
+using AmorLib.Networking;
+using AmorLib.Networking.StateReplicators;
+using GameData;
+using GTFO.API;
 
 namespace AWO.Modules.WEE.Events;
 
@@ -19,6 +26,34 @@ internal sealed class SetTerminalPassword : BaseEvent
             {
                 case WEE_SetTerminalPassword.PasswordEventType.Add:
                     var password = ePassword.Password;
+
+                    if (ePassword.MakePasswordRandom)
+                    {
+                        //Untested if it syncs with clients but should be fine (I hope)
+                        uint seed = EntryPoint.SessionRand.Next();
+                        password = SerialGenerator.GenerateComplexPassword(seed, ePassword.PasswordLength);
+                        Logger.Debug($"Generated random password: {password}");
+                    }
+
+                    if (ePassword.UseReferenceValueAsPassword && ePassword.ReferenceValueID != 0)
+                    {
+                        string referencePassword = AWO_ReferenceValues.GetStringReference(ePassword.ReferenceValueID);
+                        if (referencePassword.Length >= 1)
+                        {
+                            Logger.Debug($"Got a reference password: {referencePassword} with ID: {ePassword.ReferenceValueID}");
+                            password = referencePassword;
+                        }
+                        else
+                        {
+                            Logger.Error("Got an empty password from the reference ID:  " + ePassword.ReferenceValueID);
+                        }
+                    }
+                    else if (ePassword.ReferenceValueID != 0)
+                    {
+                        Logger.Debug($"Setting a string reference value with ID: {ePassword.ReferenceValueID} to: {password}");
+                        AWO_ReferenceValues.SetStringReference(ePassword.ReferenceValueID, password);
+                    }
+                    
                     if (password.Length > 25)
                     {
                         LogWarning($"Password {password} exceeds 25 character limit, trimming to fit!");

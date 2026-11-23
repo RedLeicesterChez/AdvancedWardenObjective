@@ -61,5 +61,6 @@ internal sealed class EntryPoint : BasePlugin
         WOManager.m_exitEventsTriggered = false;
         BlackoutState.Cleanup();
         SessionRand.Cleanup();
+        AWO_ReferenceValues.Cleanup();
     }
 }

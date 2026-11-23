@@ -1,4 +1,6 @@
 ﻿using AmorLib.Utils.JsonElementConverters;
+using AWO.Sessions;
+using Dissonance;
 using GameData;
 using GTFO.API;
 using LevelGeneration;
@@ -37,6 +39,16 @@ internal sealed class SetTerminalLog : BaseEvent
                     {
                         LogError("Terminal log's FileContent cannot be empty.");
                         continue;
+                    }
+
+                    if (eLog.FileNameReferenceValueID != 0)
+                    {
+                        eLog.FileName = AWO_ReferenceValues.GetStringReference(eLog.FileNameReferenceValueID);
+                    }
+                    if (eLog.FileContentReferenceValueID != 0)
+                    {
+                        LocaleText text = new LocaleText(AWO_ReferenceValues.GetStringReference(eLog.FileContentReferenceValueID));
+                        eLog.FileContent = text; //I fucking hate TextDB
                     }
 
                     term.AddLocalLog(new()
