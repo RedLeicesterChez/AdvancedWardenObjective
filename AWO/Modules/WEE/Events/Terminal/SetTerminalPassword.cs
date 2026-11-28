@@ -1,12 +1,6 @@
 ﻿using AWO.Sessions;
-using Dissonance;
 using LevelGeneration;
 using SNetwork;
-using Random = UnityEngine.Random;
-using AmorLib.Networking;
-using AmorLib.Networking.StateReplicators;
-using GameData;
-using GTFO.API;
 
 namespace AWO.Modules.WEE.Events;
 
@@ -31,27 +25,72 @@ internal sealed class SetTerminalPassword : BaseEvent
                     {
                         //Untested if it syncs with clients but should be fine (I hope)
                         uint seed = EntryPoint.SessionRand.Next();
-                        password = SerialGenerator.GenerateComplexPassword(seed, ePassword.PasswordLength);
-                        Logger.Debug($"Generated random password: {password}");
-                    }
-
-                    if (ePassword.UseReferenceValueAsPassword && ePassword.ReferenceValueID != 0)
-                    {
-                        string referencePassword = AWO_ReferenceValues.GetStringReference(ePassword.ReferenceValueID);
-                        if (referencePassword.Length >= 1)
+                        if (ePassword.UseComplexPassword)
                         {
-                            Logger.Debug($"Got a reference password: {referencePassword} with ID: {ePassword.ReferenceValueID}");
-                            password = referencePassword;
+                            password = SerialGenerator.GenerateComplexPassword(seed, ePassword.PasswordLength);
                         }
                         else
                         {
-                            Logger.Error("Got an empty password from the reference ID:  " + ePassword.ReferenceValueID);
+                            //I don't know if this works with brandons LongerCodes mod
+                            password = SerialGenerator.GetCodeWord();
+                        }
+                        Logger.Debug($"Generated random password: {password}");
+                    }
+
+                    List<string> passwordParts = new();
+
+                    if (ePassword.ReferenceValueID.Values.Count > 1 && password.Length % ePassword.ReferenceValueID.Values.Count == 0)
+                    {
+                        //I am not good at keeping track of all of this bullshit
+                        char[] activeSplitPassword = new string('-', password.Length).ToCharArray();
+                         
+                        int splitPartLength = password.Length / ePassword.ReferenceValueID.Values.Count;
+
+                        //Remind me to never touch for loops again I fucking hate this
+                        for (int i = 0; i < splitPartLength * ePassword.ReferenceValueID.Values.Count; i += splitPartLength)
+                        {
+                            string passwordPart = password.Substring(i, splitPartLength);
+                            //Logger.Debug($"Separating password into parts current part: {passwordPart}");
+                            
+                            for (int i2 = 0; i2 < passwordPart.Length; i2++)
+                            {
+                                activeSplitPassword[i + i2] = passwordPart[i2];
+                            }
+                            
+                            //Logger.Debug($"Split password current split password: {new string (activeSplitPassword)}");
+                            passwordParts.Add(new string(activeSplitPassword));
+                            activeSplitPassword = new string('-', password.Length).ToCharArray();
+                        }
+
+                        foreach (string passwordPart in passwordParts)
+                        {
+                            Logger.Debug($"Got password part: {passwordPart}");
                         }
                     }
-                    else if (ePassword.ReferenceValueID != 0)
+
+                    int count = 0;
+                    foreach (var refValue in ePassword.ReferenceValueID)
                     {
-                        Logger.Debug($"Setting a string reference value with ID: {ePassword.ReferenceValueID} to: {password}");
-                        AWO_ReferenceValues.SetStringReference(ePassword.ReferenceValueID, password);
+                        if (refValue == 0)
+                        {
+                            Logger.Debug("RefValue was 0 so it will be ignored");
+                        }
+                        else if (ePassword.UseReferenceValueAsPassword)
+                        {
+                            password = "";
+                            Logger.Debug($"Setting terminal password from RefernceValue {refValue} Current Password: {password}");
+                            password += AWO_ReferenceValues.GetStringReference(refValue);
+                        }
+                        else if (passwordParts.Count > 1)
+                        {
+                            AWO_ReferenceValues.SetStringReference(refValue, passwordParts[count]);
+                        }
+                        else
+                        {
+                            Logger.Debug("Password couldn't be split so will be set as one password");
+                            AWO_ReferenceValues.SetStringReference(refValue, password);
+                        }
+                        count++;
                     }
                     
                     if (password.Length > 25)
@@ -73,7 +112,7 @@ internal sealed class SetTerminalPassword : BaseEvent
                         return;
                     }
 
-                    term.LockWithPassword(password);
+                    term.LockWithPassword(password, ePassword.LockedHelpText);
                     // If term has been unlocked previously, input is no longer allowed
                     if (term.CurrentStateName != TERM_State.EnterPassword)
                         term.GetState((int)TERM_State.EnterPassword).Cast<LG_TERM_EnterPassword>().EnableInput();

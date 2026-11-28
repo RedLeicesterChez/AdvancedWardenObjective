@@ -720,10 +720,12 @@ public sealed class WEE_SetTerminalPassword
     public int TerminalIndex { get; set; } = 0;
     public PasswordEventType Type { get; set; } = PasswordEventType.Add;
     public bool MakePasswordRandom { get; set; } = false;
+    public bool UseComplexPassword { get; set; } = false; //Allows for random passwords longer than 4 letters
     public string Password { get; set; } = string.Empty;
+    public string LockedHelpText { get; set; } = string.Empty;
     public int PasswordLength { get; set; } = 4;
     public bool UseReferenceValueAsPassword { get; set; } = false;
-    public int ReferenceValueID { get; set; } = 0;
+    public Arrayable<int> ReferenceValueID { get; set; } = 0;
     public enum PasswordEventType : byte
     {
         Add,
